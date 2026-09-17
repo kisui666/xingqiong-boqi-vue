@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* 崩铁风主题色（V0.1 预留，具体 UI 后续再调）
+   Tailwind v4 CSS-first 写法：在 @theme 声明后自动生成
+   bg-space-black / text-stellar-gold / border-imaginary-purple 等工具类 */
+@theme {
+  /* 深空黑底 */
+  --color-space-black: #0a0e1a;
+  /* 星金 */
+  --color-stellar-gold: #d4af37;
+  /* 虚数紫 */
+  --color-imaginary-purple: #8a2be2;
+  /* 量子蓝 */
+  --color-quantum-blue: #00bfff;
+}
