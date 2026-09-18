@@ -10,7 +10,11 @@ defineProps<{
   visible: boolean;
 }>();
 
-const emit = defineEmits<{ (e: 'close'): void }>();
+const emit = defineEmits<{
+  (e: 'close'): void;
+  (e: 'drawer-enter'): void;
+  (e: 'drawer-leave'): void;
+}>();
 </script>
 
 <template>
@@ -20,6 +24,8 @@ const emit = defineEmits<{ (e: 'close'): void }>();
         v-if="visible && character"
         class="fixed inset-x-0 bottom-0 z-[70] mx-auto w-full max-w-2xl rounded-t-2xl border-t border-stellar-gold/50 bg-space-black p-4 shadow-[0_-4px_30px_rgba(212,175,55,0.25)]"
         @click.stop
+        @mouseenter="emit('drawer-enter')"
+        @mouseleave="emit('drawer-leave')"
       >
         <div class="mb-2 flex items-center justify-between">
           <h3 class="text-lg font-bold text-stellar-gold">

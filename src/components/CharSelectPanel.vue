@@ -4,7 +4,7 @@
   选完后 emit('confirmed', [id, id])，由 App.vue 调 setChars + 进 in-game。
 -->
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { CHARACTER_LIST } from '../characters';
 import type { Character } from '../characters/types';
 import CharCard from './CharCard.vue';
@@ -23,6 +23,26 @@ const detailId = ref<string | null>(null);
 const showDrawer = ref(false);
 /** P2 阶段遮罩：点击「开始选人」才揭开的选人面板 */
 const p2Ready = ref(false);
+
+// —— 抽屉 hover-stay：鼠标在卡片区或抽屉内时保持打开 ——
+const pointerInCards = ref(false);
+const pointerInDrawer = ref(false);
+let closeTimer: number | undefined;
+
+function scheduleClose() {
+  if (closeTimer) window.clearTimeout(closeTimer);
+  closeTimer = window.setTimeout(() => {
+    if (!pointerInCards.value && !pointerInDrawer.value) {
+      showDrawer.value = false;
+    }
+  }, 250);
+}
+function cancelClose() {
+  if (closeTimer) {
+    window.clearTimeout(closeTimer);
+    closeTimer = undefined;
+  }
+}
 
 const currentChoice = computed(() =>
   phase.value === 'p1' ? p1Choice.value : p2Choice.value,
@@ -56,9 +76,35 @@ function randomSelect() {
 }
 
 function showDetail(id: string) {
+  cancelClose();
   detailId.value = id;
   showDrawer.value = true;
 }
+
+function onCardsEnter() {
+  pointerInCards.value = true;
+  cancelClose();
+}
+function onCardsLeave() {
+  pointerInCards.value = false;
+  scheduleClose();
+}
+function onDrawerEnter() {
+  pointerInDrawer.value = true;
+  cancelClose();
+}
+function onDrawerLeave() {
+  pointerInDrawer.value = false;
+  scheduleClose();
+}
+function closeDrawer() {
+  cancelClose();
+  showDrawer.value = false;
+}
+
+onBeforeUnmount(() => {
+  if (closeTimer) window.clearTimeout(closeTimer);
+});
 
 const detailChar = computed<Character | null>(
   () => CHARACTER_LIST.find((c) => c.id === detailId.value) ?? null,
@@ -124,7 +170,11 @@ function restart() {
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+      <div
+        class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6"
+        @mouseenter="onCardsEnter"
+        @mouseleave="onCardsLeave"
+      >
         <CharCard
           v-for="c in CHARACTER_LIST"
           :key="c.id"
@@ -197,7 +247,9 @@ function restart() {
     <CharDetailDrawer
       :character="detailChar"
       :visible="showDrawer"
-      @close="showDrawer = false"
+      @close="closeDrawer"
+      @drawer-enter="onDrawerEnter"
+      @drawer-leave="onDrawerLeave"
     />
   </div>
 </template>
