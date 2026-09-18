@@ -8,7 +8,7 @@
  *   3) isFromTrusted            —— 来源伪造识别（from 字段）
  * 任一不过即整包丢弃，绝不送进 applyMove。
  */
-import { BOARD_SIZE, isStore } from '../game/constants';
+import { BOARD_SIZE } from '../game/constants';
 import type {
   GameState,
   MovePayload,
@@ -19,13 +19,15 @@ import type {
 /** 协议版本号；后续若升级协议可放这里做兼容判断 */
 export const P2P_PROTOCOL_VERSION = 1;
 
-/** 合法的 5 种消息类型集合 */
+/** 合法的 7 种消息类型集合 */
 const VALID_TYPES: ReadonlySet<P2PMessageType> = new Set([
   'SYNC_STATE',
   'MOVE',
   'MOVE_REJECT',
   'RECONNECT_REQUEST',
   'RECONNECT_RESPONSE',
+  'CHAR_CONFIRM',
+  'CHAR_REVEAL',
 ]);
 
 /** 校验失败时返回的统一结构 */
@@ -132,6 +134,11 @@ export function isTurnAcceptable(
       // 内含权威 currentState，guest 直接覆盖，不校验 turn
       return { ok: true };
 
+    case 'CHAR_CONFIRM':
+    case 'CHAR_REVEAL':
+      // 角色选择信号：异步于 game turn，不强制连续性
+      return { ok: true };
+
     default:
       return { ok: false, reason: `未处理的类型：${msg.type}` };
   }
@@ -168,9 +175,10 @@ export function isFromTrusted(
 // ==================== MOVE 载荷校验 ====================
 
 /**
- * MOVE 消息载荷语义校验：pitIndex 必须是己方普通坑位整数。
- * 与 engine.applyMove 的前置校验一致，但在这里提前拦一层，
- * 避免把明显非法的指令送进 host 的权威引擎。
+ * MOVE 消息载荷语义校验：pitIndex 必须是合法的普通坑位整数（0~11）。
+ * 12 元素 board 模型中无计分槽，所有 0~11 都是普通坑（坑 0~5 属玩家0，
+ * 坑 6~11 属玩家1）。具体"是否己方坑"由 host 引擎 applyMove 校验，
+ * 这里只做越界 / 类型检查，提前拦截明显非法指令。
  */
 export function validateMovePayload(
   payload: unknown,
@@ -184,9 +192,6 @@ export function validateMovePayload(
   }
   if (p.pitIndex < 0 || p.pitIndex >= BOARD_SIZE) {
     return { ok: false, reason: 'pitIndex 越界' };
-  }
-  if (isStore(p.pitIndex)) {
-    return { ok: false, reason: 'pitIndex 指向计分坑' };
   }
   return { ok: true };
 }

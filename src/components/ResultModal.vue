@@ -12,6 +12,8 @@ const props = defineProps<{
   score1: number;
   label0: string;
   label1: string;
+  charName0?: string;
+  charName1?: string;
 }>();
 
 const emit = defineEmits<{
@@ -40,6 +42,7 @@ const title = computed(() => {
       <div class="mb-5 flex items-center justify-center gap-4">
         <div class="text-center">
           <div class="text-xs text-gray-400">{{ label0 }}</div>
+          <div v-if="charName0" class="text-[10px] text-stellar-gold/80">{{ charName0 }}</div>
           <div class="text-3xl font-bold tabular-nums text-quantum-blue">
             {{ score0 }}
           </div>
@@ -47,6 +50,7 @@ const title = computed(() => {
         <span class="text-gray-500">:</span>
         <div class="text-center">
           <div class="text-xs text-gray-400">{{ label1 }}</div>
+          <div v-if="charName1" class="text-[10px] text-stellar-gold/80">{{ charName1 }}</div>
           <div class="text-3xl font-bold tabular-nums text-imaginary-purple">
             {{ score1 }}
           </div>

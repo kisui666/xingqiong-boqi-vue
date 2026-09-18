@@ -4,12 +4,22 @@
  * host 权威结算 + 双端乐观动画 + 断线重连。
  */
 import { computed, ref } from 'vue';
-import { applyMove, createInitialState } from '../../game/engine';
-import { PITS, isStore } from '../../game/constants';
+import {
+  applyMove,
+  createInitialState,
+  getSowPath,
+  toViewBoard,
+} from '../../game/engine';
+import {
+  PITS,
+  isStoreLogical,
+  logicalToBoardPit,
+} from '../../game/constants';
 import { useP2PGame } from '../../p2p/useP2PGame';
 import { useMoveAnimation } from '../useMoveAnimation';
 import type {
   Board,
+  Effect,
   GameState,
   MoveErrorCode,
   MoveSuccess,
@@ -23,7 +33,7 @@ export function createOnlineMatch(
   room?: string,
 ): MatchAdapter {
   const state = ref<GameState>(createInitialState());
-  const displayBoard = ref<Board>(state.value.board.slice());
+  const displayBoard = ref<Board>(toViewBoard(state.value));
   const extraTurnActive = ref(false);
   const lastError = ref<MoveErrorCode | null>(null);
   /** host 建房后捕获的房间号（同步可用） */
@@ -60,24 +70,26 @@ export function createOnlineMatch(
   }
 
   // ---------- 点击与落子 ----------
+  // pitIndex 是 14 位逻辑索引；转 board 下标后校验
   function canClick(pitIndex: number): boolean {
     if (p2p.status.value !== 'connected' || animating.value) return false;
     const s = state.value;
     if (s.finished || s.currentPlayer !== myPlayerId.value) return false;
-    if (isStore(pitIndex) || !PITS[myPlayerId.value].includes(pitIndex)) {
-      return false;
-    }
-    return s.board[pitIndex] > 0;
+    if (isStoreLogical(pitIndex)) return false;
+    const bIdx = logicalToBoardPit(pitIndex);
+    if (!PITS[myPlayerId.value].includes(bIdx)) return false;
+    return s.board[bIdx] > 0;
   }
 
   function handlePitClick(pitIndex: number) {
     if (!canClick(pitIndex)) return;
+    const bIdx = logicalToBoardPit(pitIndex);
     const before = state.value;
-    const result = applyMove(before, pitIndex, myPlayerId.value);
+    const result = applyMove(before, bIdx, myPlayerId.value);
     if (!result.ok) return;
 
     if (p2p.myRole.value === 'host') state.value = result.state;
-    else p2p.sendMove(pitIndex, before.turn);
+    else p2p.sendMove(bIdx, before.turn);
 
     extraTurnActive.value = result.extraTurn;
     playMove(displayBoard, before, result, myPlayerId.value, {
@@ -120,14 +132,14 @@ export function createOnlineMatch(
     if (s.finished || s.currentPlayer !== myPlayerId.value) {
       extraTurnActive.value = false;
     }
-    if (!animating.value) displayBoard.value = s.board.slice();
+    if (!animating.value) displayBoard.value = toViewBoard(s);
   }
 
   function onMoveReject(err: MoveErrorCode, current: GameState) {
     kill();
     pendingRemote = [];
     state.value = current;
-    displayBoard.value = current.board.slice();
+    displayBoard.value = toViewBoard(current);
     lastError.value = err;
     window.setTimeout(() => {
       if (lastError.value === err) lastError.value = null;
@@ -139,7 +151,7 @@ export function createOnlineMatch(
     kill();
     pendingRemote = [];
     state.value = createInitialState();
-    displayBoard.value = state.value.board.slice();
+    displayBoard.value = toViewBoard(state.value);
     extraTurnActive.value = false;
     lastError.value = null;
   }
@@ -148,6 +160,40 @@ export function createOnlineMatch(
     kill();
     pendingRemote = [];
     p2p.disconnect();
+  }
+
+  // ---------- Step 2 技能字段 stub（Step 4 联机盲选再增强） ----------
+  const chars = computed<[string, string]>(() => state.value.chars);
+  const skillUsed = computed<[boolean, boolean]>(() => state.value.skillUsed);
+  const activeEffects = computed<Effect[]>(() => state.value.effects);
+  const pendingTibao = computed(() => false);
+  const silenced = computed<PlayerId[]>(() => []);
+  const direction = computed<'cw' | 'ccw' | undefined>(
+    () => state.value.direction,
+  );
+  function setChars(_chars: [string, string]) {
+    // Step 4：盲选确认后由 host 下发 CHAR_REVEAL 写入
+  }
+  function setDirection(_dir: 'cw' | 'ccw') {
+    // Step 4
+  }
+  function canUseSkill(_player: PlayerId): boolean {
+    return false; // Step 4
+  }
+  function useSkill(
+    _skillId: string,
+    _pit?: number,
+    _targetPit?: number,
+    _direction?: 'cw' | 'ccw',
+  ): boolean {
+    return false; // Step 4
+  }
+  function previewSowPath(pitIndex: number, dir?: 'cw' | 'ccw'): number[] {
+    const s = state.value;
+    return getSowPath(s.board, s.stores, pitIndex, dir ?? s.direction ?? 'ccw');
+  }
+  function getSkillHint(_player: PlayerId): number | undefined {
+    return undefined;
   }
 
   return {
@@ -168,6 +214,19 @@ export function createOnlineMatch(
     createdRoom,
     // 透传 P2P 专用方法（reconnect / disconnect / error / myRole 等）
     ...p2p,
+    // Step 2 技能系统 stub
+    chars,
+    skillUsed,
+    activeEffects,
+    pendingTibao,
+    silenced,
+    direction,
+    setChars,
+    setDirection,
+    canUseSkill,
+    useSkill,
+    previewSowPath,
+    getSkillHint,
   } as MatchAdapter & ReturnType<typeof useP2PGame> & {
     createdRoom: typeof createdRoom;
   };

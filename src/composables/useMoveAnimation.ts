@@ -3,11 +3,22 @@
  * ==================================================================
  * 三种模式（Local / AI / Online）共用同一套飞子动画。
  * adapter 通过 onCommit / onAfterCommit 钩子接入各自的副作用。
+ *
+ * 12-board 模型：
+ *   - displayBoard 是 14 元素视图（toViewBoard 生成），索引与
+ *     GameBoard 的 14 位 data-pit-index 一致（0~5 P0 坑 / 6 P0 store /
+ *     7~12 P1 坑 / 13 P1 store）。
+ *   - result.lastIndex 是逻辑位（0~13）。
+ *   - 计分坑逻辑位用 STORE_LOGICAL[byPlayer]。
  */
 import { ref } from 'vue';
 import gsap from 'gsap';
-import { getSowPath } from '../game/engine';
-import { STORE, oppositePit } from '../game/constants';
+import { getSowPath, toViewBoard } from '../game/engine';
+import {
+  STORE_LOGICAL,
+  logicalToBoardPit,
+  oppositeLogical,
+} from '../game/constants';
 import type { Board, GameState, MoveSuccess, PlayerId } from '../game/types';
 
 export interface MoveAnimationCallbacks {
@@ -24,7 +35,7 @@ export function useMoveAnimation(getBoardEl: () => HTMLElement | null) {
 
   /**
    * 播放一手棋的完整动画。
-   * @param displayBoard  逐格推进的展示棋盘（调用方持有，动画期间原地修改）
+   * @param displayBoard  逐格推进的展示棋盘（14 元素视图，调用方持有，动画期间原地修改）
    * @param before        落子前状态
    * @param result        applyMove 返回的成功结果
    * @param byPlayer      落子方
@@ -37,9 +48,14 @@ export function useMoveAnimation(getBoardEl: () => HTMLElement | null) {
     byPlayer: PlayerId,
     callbacks: MoveAnimationCallbacks,
   ) {
-    const path = getSowPath(before.board, result.pitIndex);
+    const path = getSowPath(
+      before.board,
+      before.stores,
+      result.pitIndex,
+      before.direction ?? 'ccw',
+    );
     animating.value = true;
-    displayBoard.value = before.board.slice();
+    displayBoard.value = toViewBoard(before);
 
     const boardEl = getBoardEl();
     const overlay = boardEl?.querySelector('[data-fly-overlay]') as HTMLElement | null;
@@ -61,13 +77,14 @@ export function useMoveAnimation(getBoardEl: () => HTMLElement | null) {
 
     // ---- 捕获 ----
     if (result.captured) {
-      const opposite = oppositePit(result.lastIndex);
-      const store = STORE[byPlayer];
-      const total = before.board[opposite] + 1;
+      const oppositeLogicalIdx = oppositeLogical(result.lastIndex);
+      const oppositeBoardIdx = logicalToBoardPit(oppositeLogicalIdx);
+      const store = STORE_LOGICAL[byPlayer];
+      const total = before.board[oppositeBoardIdx] + 1;
       const capStart = path.length * 0.15 + 0.1;
       const dots = Math.min(total, 8);
       for (let k = 0; k < dots; k++) {
-        const fromIdx = k === 0 ? result.lastIndex : opposite;
+        const fromIdx = k === 0 ? result.lastIndex : oppositeLogicalIdx;
         tl.add(
           () => flyStone(boardEl, overlay, fromIdx, store, () => {}),
           capStart + k * 0.06,
@@ -75,7 +92,7 @@ export function useMoveAnimation(getBoardEl: () => HTMLElement | null) {
       }
       const capEnd = capStart + dots * 0.06 + 0.12;
       tl.add(() => {
-        displayBoard.value[opposite] = 0;
+        displayBoard.value[oppositeLogicalIdx] = 0;
         displayBoard.value[result.lastIndex] = 0;
         displayBoard.value[store] += total;
       }, capEnd);
@@ -91,7 +108,8 @@ export function useMoveAnimation(getBoardEl: () => HTMLElement | null) {
     byPlayer: PlayerId,
     callbacks: MoveAnimationCallbacks,
   ) {
-    displayBoard.value = result.state.board.slice();
+    void byPlayer;
+    displayBoard.value = toViewBoard(result.state);
     animating.value = false;
     currentTl = null;
     callbacks.onCommit(result, byPlayer);

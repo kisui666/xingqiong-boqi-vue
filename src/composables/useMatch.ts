@@ -7,9 +7,8 @@
  * 三种模式共用同一套 engine 纯函数 + useMoveAnimation 动画。
  */
 import { computed, ref, shallowRef } from 'vue';
-import { createInitialState } from '../game/engine';
-import { INITIAL_BOARD } from '../game/constants';
-import type { GameState, MoveErrorCode, PlayerId } from '../game/types';
+import { createInitialState, toViewBoard } from '../game/engine';
+import type { Effect, GameState, MoveErrorCode, PlayerId } from '../game/types';
 import type { P2PStatus } from '../p2p/useP2PGame';
 import { createLocalMatch } from './adapters/localMatch';
 import { createAiMatch } from './adapters/aiMatch';
@@ -53,7 +52,7 @@ export function useMatch(options: UseMatchOptions) {
     () => adapter.value?.state.value ?? createInitialState(),
   );
   const displayBoard = computed(
-    () => adapter.value?.displayBoard.value ?? INITIAL_BOARD.slice(),
+    () => adapter.value?.displayBoard.value ?? toViewBoard(createInitialState()),
   );
   const animating = computed(() => adapter.value?.animating.value ?? false);
   const bottomPlayer = computed<PlayerId>(
@@ -71,6 +70,50 @@ export function useMatch(options: UseMatchOptions) {
   const p2pStatus = computed<P2PStatus>(
     () => adapter.value?.p2pStatus.value ?? 'idle',
   );
+
+  // ---------- Step 2 技能代理 ----------
+  const chars = computed<[string, string]>(
+    () => adapter.value?.chars.value ?? ['', ''],
+  );
+  const skillUsed = computed<[boolean, boolean]>(
+    () => adapter.value?.skillUsed.value ?? [false, false],
+  );
+  const activeEffects = computed<Effect[]>(
+    () => adapter.value?.activeEffects.value ?? [],
+  );
+  const pendingTibao = computed(
+    () => adapter.value?.pendingTibao.value ?? false,
+  );
+  const silenced = computed<PlayerId[]>(
+    () => adapter.value?.silenced.value ?? [],
+  );
+  const direction = computed<'cw' | 'ccw' | undefined>(
+    () => adapter.value?.direction.value ?? undefined,
+  );
+
+  function setChars(c: [string, string]): void {
+    adapter.value?.setChars(c);
+  }
+  function setDirection(dir: 'cw' | 'ccw'): void {
+    adapter.value?.setDirection(dir);
+  }
+  function canUseSkill(p: PlayerId): boolean {
+    return adapter.value?.canUseSkill(p) ?? false;
+  }
+  function useSkill(
+    skillId: string,
+    pit?: number,
+    targetPit?: number,
+    dir?: 'cw' | 'ccw',
+  ): boolean {
+    return adapter.value?.useSkill(skillId, pit, targetPit, dir) ?? false;
+  }
+  function previewSowPath(pitIndex: number, dir?: 'cw' | 'ccw'): number[] {
+    return adapter.value?.previewSowPath(pitIndex, dir) ?? [];
+  }
+  function getSkillHint(p: PlayerId): number | undefined {
+    return adapter.value?.getSkillHint(p);
+  }
 
   function canClick(i: number): boolean {
     return adapter.value?.canClick(i) ?? false;
@@ -134,6 +177,19 @@ export function useMatch(options: UseMatchOptions) {
     handlePitClick,
     reset,
     destroy,
+    // Step 2 技能系统
+    chars,
+    skillUsed,
+    activeEffects,
+    pendingTibao,
+    silenced,
+    direction,
+    setChars,
+    setDirection,
+    canUseSkill,
+    useSkill,
+    previewSowPath,
+    getSkillHint,
     // Online 专用
     online: {
       status: onlineStatus,

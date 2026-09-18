@@ -22,6 +22,7 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.trae/
 
 # 系统文件
 .DS_Store

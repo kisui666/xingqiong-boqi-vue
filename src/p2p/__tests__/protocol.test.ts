@@ -151,24 +151,23 @@ describe('isFromTrusted', () => {
 // ==================== MOVE 载荷语义 ====================
 
 describe('validateMovePayload', () => {
-  it('己方普通坑位整数 → 接受', () => {
+  it('己方普通坑位整数 → 接受（0~11 均为合法普通坑，无计分槽）', () => {
     expect(validateMovePayload({ pitIndex: 0 }).ok).toBe(true);
     expect(validateMovePayload({ pitIndex: 5 }).ok).toBe(true);
-    expect(validateMovePayload({ pitIndex: 7 }).ok).toBe(true);
+    // 6 现在是合法 P1 坑（不再是计分坑）
+    expect(validateMovePayload({ pitIndex: 6 }).ok).toBe(true);
+    expect(validateMovePayload({ pitIndex: 11 }).ok).toBe(true);
   });
 
   it('非整数 pitIndex → 失败', () => {
     expect(validateMovePayload({ pitIndex: 1.5 }).ok).toBe(false);
   });
 
-  it('越界 → 失败', () => {
+  it('越界 → 失败（BOARD_SIZE=12，pitIndex ∈ [0,11]）', () => {
     expect(validateMovePayload({ pitIndex: -1 }).ok).toBe(false);
-    expect(validateMovePayload({ pitIndex: 14 }).ok).toBe(false);
-  });
-
-  it('指向计分坑 → 失败', () => {
-    expect(validateMovePayload({ pitIndex: 6 }).ok).toBe(false);
+    expect(validateMovePayload({ pitIndex: 12 }).ok).toBe(false);
     expect(validateMovePayload({ pitIndex: 13 }).ok).toBe(false);
+    expect(validateMovePayload({ pitIndex: 14 }).ok).toBe(false);
   });
 
   it('pitIndex 缺失 → 失败', () => {
@@ -199,8 +198,9 @@ describe('validateIncoming', () => {
     expect(validateIncoming(m, GUEST, 4).ok).toBe(false);
   });
 
-  it('MOVE 载荷非法（计分坑）→ 在载荷层拦下', () => {
-    const m = moveMsg(5, 6); // pitIndex=6 是计分坑
+  it('MOVE 载荷非法（pitIndex 越界）→ 在载荷层拦下', () => {
+    // 12 元素 board 下，pitIndex=12 越界（不是合法坑）
+    const m = moveMsg(5, 12);
     expect(validateIncoming(m, GUEST, 5).ok).toBe(false);
   });
 

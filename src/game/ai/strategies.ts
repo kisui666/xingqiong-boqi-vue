@@ -1,16 +1,23 @@
 /**
- * AI 策略实现 —— 纯函数，只依赖 engine + types
+ * AI 策略实现 —— 纯函数，只依赖 engine + constants + types
  * ==================================================================
  * easy：随机；medium：评分制（extraTurn 优先 + 捕获 + 防御）。
  * 后续 hard 可在此扩展 Minimax。
+ *
+ * 12-board 模型：计分在 stores，lastIndex 是逻辑位（0~13）。
  */
 import { applyMove, getLegalPits } from '../engine';
-import { PITS, STORE, opponent, oppositePit } from '../constants';
+import {
+  logicalToBoardPit,
+  opponent,
+  oppositeLogical,
+} from '../constants';
 import type { GameState, PlayerId } from '../types';
 
 /** 随机选一个合法坑位 */
 export function pickEasy(state: GameState, aiPlayer: PlayerId, legal: number[]): number {
-  void state; void aiPlayer;
+  void state;
+  void aiPlayer;
   return legal[Math.floor(Math.random() * legal.length)];
 }
 
@@ -24,7 +31,6 @@ export function pickEasy(state: GameState, aiPlayer: PlayerId, legal: number[]):
  */
 export function pickMedium(state: GameState, aiPlayer: PlayerId, legal: number[]): number {
   const foe = opponent(aiPlayer);
-  const ownStore = STORE[aiPlayer];
 
   let bestPit = legal[0];
   let bestScore = -Infinity;
@@ -38,15 +44,18 @@ export function pickMedium(state: GameState, aiPlayer: PlayerId, legal: number[]
     // 额外回合最高优先
     if (result.extraTurn) score += 1000;
 
-    // 捕获加分
+    // 捕获加分：lastIndex 是逻辑位，对面坑用 oppositeLogical + logicalToBoardPit
     if (result.captured) {
-      const opp = oppositePit(result.lastIndex);
-      const capturedCount = state.board[opp] + 1; // 对面 + 末子
+      const oppBoardIdx = logicalToBoardPit(
+        oppositeLogical(result.lastIndex),
+      );
+      const capturedCount = state.board[oppBoardIdx] + 1; // 对面 + 末子
       score += 50 * capturedCount;
     }
 
-    // 计分坑增量微调
-    const storeGain = result.state.board[ownStore] - state.board[ownStore];
+    // 计分坑增量微调（计分在 stores，不是 board）
+    const storeGain =
+      result.state.stores[aiPlayer] - state.stores[aiPlayer];
     score += storeGain;
 
     // 防御：此手后对手是否有合法坑能触发额外回合
@@ -74,6 +83,3 @@ export function pickMedium(state: GameState, aiPlayer: PlayerId, legal: number[]
 export function pickHard(state: GameState, aiPlayer: PlayerId, legal: number[]): number {
   return pickMedium(state, aiPlayer, legal);
 }
-
-// 仅消除未使用导入告警（PITS 在当前策略中保留用于未来扩展）
-void PITS;
