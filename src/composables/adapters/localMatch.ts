@@ -181,7 +181,11 @@ export function createLocalMatch(
     };
 
     const r = char.active(ctx, pit ?? 0, targetPit, dir);
+    // eslint-disable-next-line no-console
+    console.log('[useSkill]', skillId, 'me=', me, 'extraTurn=', r.extraTurn, 'continueAfterSkill=', r.continueAfterSkill);
     applyActionResult(r, me, skillId, s);
+    // eslint-disable-next-line no-console
+    console.log('[useSkill] after: currentPlayer=', state.value.currentPlayer, 'skillUsed=', state.value.skillUsed);
     return true;
   }
 
@@ -245,6 +249,8 @@ export function createLocalMatch(
       const init = dispatcher.onTurnStart(next, next.currentPlayer);
       state.value = init;
     }
+    // eslint-disable-next-line no-console
+    console.log('[applyActionResult] branch normal, extraTurn=', r.extraTurn, 'next.currentPlayer=', state.value.currentPlayer);
     displayBoard.value = toViewBoard(state.value);
   }
 
