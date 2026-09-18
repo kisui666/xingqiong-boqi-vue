@@ -1,13 +1,17 @@
 <!--
-  回合横幅：你的回合 / 对方回合 / 额外回合！/ 游戏结束。
-  额外回合 → GSAP 无限闪烁；模式切换时自动停止旧动画。
+  回合横幅：玩家 0 回合 / 玩家 1 回合 / 额外回合！/ 游戏结束。
+  - mode 'p0'：量子蓝（玩家 0 行动）
+  - mode 'p1'：虚数紫（玩家 1 行动，含 AI / 对手）
+  - mode 'extra'：星金无限闪烁
+  - mode 'end'：星金
+  文案由 App.vue 按 mode（Local/AI/Online）计算后传入。
 -->
 <script setup lang="ts">
 import { computed, ref, watch, onUnmounted } from 'vue';
 import gsap from 'gsap';
 
 const props = defineProps<{
-  mode: 'my' | 'opp' | 'extra' | 'end';
+  mode: 'p0' | 'p1' | 'extra' | 'end';
   text: string;
 }>();
 
@@ -38,8 +42,8 @@ onUnmounted(() => blink?.kill());
 const colorClass = computed(
   () =>
     ({
-      my: 'text-quantum-blue',
-      opp: 'text-gray-400',
+      p0: 'text-quantum-blue',
+      p1: 'text-imaginary-purple',
       extra: 'text-stellar-gold',
       end: 'text-stellar-gold',
     })[props.mode],

@@ -16,6 +16,8 @@ const emit = defineEmits<{
   (e: 'create'): void;
   (e: 'join', room: string): void;
   (e: 'connected'): void;
+  (e: 'back'): void;
+  (e: 'show-rules'): void;
 }>();
 
 const roomInput = ref('');
@@ -52,10 +54,24 @@ async function copyInvite() {
 </script>
 
 <template>
-  <div class="mx-auto mt-10 w-full max-w-sm space-y-5">
-    <h1 class="text-center text-2xl font-bold tracking-widest text-stellar-gold">
-      星穹播棋
-    </h1>
+  <div class="mx-auto mt-6 w-full max-w-sm space-y-5">
+    <div class="flex items-center justify-between">
+      <button
+        class="rounded-lg border border-gray-600 px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-800"
+        @click="emit('back')"
+      >
+        ‹ 返回
+      </button>
+      <h2 class="text-center text-lg font-bold tracking-widest text-stellar-gold">
+        在线联机
+      </h2>
+      <button
+        class="rounded-lg border border-gray-600 px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-800"
+        @click="emit('show-rules')"
+      >
+        规则
+      </button>
+    </div>
 
     <div class="text-center text-sm text-gray-400">
       连接状态：

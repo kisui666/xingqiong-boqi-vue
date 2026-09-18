@@ -12,4 +12,26 @@
   --color-imaginary-purple: #8a2be2;
   /* 量子蓝 */
   --color-quantum-blue: #00bfff;
+  /* 回合高亮：玩家 0 浅蓝 / 玩家 1 浅橙 */
+  --color-active-p0: #1e3a5f;
+  --color-active-p1: #4a3520;
+}
+
+/* 全局：游戏容器水平垂直居中（V0.2 UI/UX 优化） */
+html,
+body,
+#app {
+  min-height: 100%;
+}
+body {
+  background-color: var(--color-space-black);
+  color: #f3f4f6;
+  margin: 0;
+}
+#app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
 }
