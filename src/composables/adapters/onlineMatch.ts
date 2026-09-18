@@ -167,6 +167,7 @@ export function createOnlineMatch(
   const skillUsed = computed<[boolean, boolean]>(() => state.value.skillUsed);
   const activeEffects = computed<Effect[]>(() => state.value.effects);
   const pendingTibao = computed(() => false);
+  const activeHint = computed<number | undefined>(() => undefined);
   const silenced = computed<PlayerId[]>(() => []);
   const direction = computed<'cw' | 'ccw' | undefined>(
     () => state.value.direction,
@@ -219,6 +220,7 @@ export function createOnlineMatch(
     skillUsed,
     activeEffects,
     pendingTibao,
+    activeHint,
     silenced,
     direction,
     setChars,

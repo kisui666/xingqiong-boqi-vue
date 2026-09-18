@@ -63,6 +63,7 @@ const {
   chars,
   skillUsed,
   pendingTibao,
+  activeHint,
   silenced,
   canUseSkill,
   useSkill,
@@ -150,6 +151,16 @@ const skillModalPlayer = computed<PlayerId>(() => state.value.currentPlayer);
 function openSkillModal() {
   if (!canUseSkill(state.value.currentPlayer)) return;
   skillModalVisible.value = true;
+}
+
+/** 技能按钮点击：那刻夏「洞察」直接发动（无需确认弹窗），其余走确认弹窗 */
+function onSkillButtonClick() {
+  const me = state.value.currentPlayer;
+  if (chars.value[me] === 'nakkari') {
+    useSkill('nakkari');
+  } else {
+    openSkillModal();
+  }
 }
 function onSkillConfirm(payload: { pit: number; targetPit?: number; direction?: 'cw' | 'ccw' }) {
   const me = state.value.currentPlayer;
@@ -279,6 +290,14 @@ function onExitToLobby() {
         操作被驳回：{{ lastError }}（已回滚）
       </p>
 
+      <!-- 洞察高亮提示 -->
+      <p
+        v-if="activeHint !== undefined"
+        class="mb-2 text-center text-xs text-stellar-gold"
+      >
+        那刻夏·洞察：已用金色高亮期望净得分最高的落点
+      </p>
+
       <!-- 技能按钮（当前玩家一侧） -->
       <div
         v-if="chars[state.currentPlayer]"
@@ -289,7 +308,7 @@ function onExitToLobby() {
           :used="skillUsed[state.currentPlayer]"
           :silenced="currentSilenced"
           :can-use="canUseSkill(state.currentPlayer)"
-          @activate="openSkillModal"
+          @activate="onSkillButtonClick"
         />
       </div>
 
@@ -303,6 +322,7 @@ function onExitToLobby() {
         :can-click="canClick"
         :bottom-player="bottomPlayer"
         :active-player="state.currentPlayer"
+        :hint-board-pit="activeHint"
         @pit-click="handlePitClick"
       />
     </template>

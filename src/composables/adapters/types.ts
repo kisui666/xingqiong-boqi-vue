@@ -48,6 +48,8 @@ export interface MatchAdapter {
   readonly activeEffects: ComputedRef<Effect[]>;
   /** 缇宝中间态：传送后等待落子（此期间不得切回合/让对手操作） */
   readonly pendingTibao: Ref<boolean>;
+  /** 那刻夏洞察当前高亮的推荐落点（board 下标；undefined = 无高亮） */
+  readonly activeHint: Ref<number | undefined>;
   /** 被沉默的玩家集合（对手是那刻夏且自己是阿格莱雅） */
   readonly silenced: ComputedRef<PlayerId[]>;
   /** 缇宝本回合选择的方向（未选时 undefined；UI 高亮用） */

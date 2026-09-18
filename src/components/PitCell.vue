@@ -17,8 +17,10 @@ const props = withDefaults(
     variant?: 'pit' | 'store';
     owner?: PlayerId;
     active?: boolean;
+    /** 那刻夏洞察推荐落点 */
+    hint?: boolean;
   }>(),
-  { clickable: false, variant: 'pit', owner: 0 as PlayerId, active: false },
+  { clickable: false, variant: 'pit', owner: 0 as PlayerId, active: false, hint: false },
 );
 
 const emit = defineEmits<{ (e: 'click'): void }>();
@@ -28,6 +30,10 @@ const containerCls = computed(() => {
     return props.active
       ? 'w-10 rounded-full border-stellar-gold bg-stellar-gold/15 md:w-14'
       : 'w-10 rounded-full border-imaginary-purple bg-imaginary-purple/10 md:w-14';
+  }
+  // 洞察推荐落点：星金色脉冲高亮（优先级最高，覆盖 clickable）
+  if (props.hint) {
+    return 'aspect-square animate-pulse cursor-pointer rounded-2xl border-stellar-gold bg-stellar-gold/25 shadow-[0_0_14px_rgba(212,175,55,0.7)]';
   }
   // 普通坑
   if (props.clickable) {
@@ -42,6 +48,7 @@ const containerCls = computed(() => {
 });
 
 const textCls = computed(() => {
+  if (props.hint) return 'text-stellar-gold';
   if (props.clickable) return 'text-quantum-blue';
   if (props.variant === 'store') return 'text-stellar-gold';
   if (props.active) {

@@ -53,6 +53,8 @@ export function createLocalMatch(
   const lastError = ref<MoveErrorCode | null>(null);
   /** 缇宝中间态：技能已结算，等待玩家补一次正常落子 */
   const pendingTibao = ref(false);
+  /** 那刻夏洞察当前高亮的推荐落点（board 下标） */
+  const activeHint = ref<number | undefined>(undefined);
   /** 缇宝技能播种产生的 extraTurn 标记，待落子后与落子 extraTurn 合并 */
   let tibaoSkillExtraTurn = false;
 
@@ -108,6 +110,8 @@ export function createLocalMatch(
     const result = applyMove(before, bIdx, me, hooks);
     if (!result.ok) return;
 
+    // 玩家已做出实际落子：清除洞察高亮
+    activeHint.value = undefined;
     // 缇宝中间态落子：合并技能 extraTurn 与落子 extraTurn
     const skillExtra = pendingTibao.value ? tibaoSkillExtraTurn : false;
     pendingTibao.value = false;
@@ -139,6 +143,7 @@ export function createLocalMatch(
     lastError.value = null;
     pendingTibao.value = false;
     tibaoSkillExtraTurn = false;
+    activeHint.value = undefined;
   }
 
   function setDirection(dir: 'cw' | 'ccw') {
@@ -153,6 +158,8 @@ export function createLocalMatch(
     if (s.finished) return false;
     if (s.currentPlayer !== player) return false;
     if (pendingTibao.value) return false; // 缇宝中间态不能再放技能
+    // 那刻夏「洞察」：不限次数的免费提示，不看 skillUsed
+    if (s.chars[player] === 'nakkari') return true;
     if (s.skillUsed[player]) return false;
     if (isSilenced(player)) return false; // 那刻夏沉默阿格莱雅
     const char = getCharacter(s.chars[player]);
@@ -165,6 +172,7 @@ export function createLocalMatch(
     targetPit?: number,
     dir?: 'cw' | 'ccw',
   ): boolean {
+    if (animating.value) return false; // 动画期间不发动技能
     const s = state.value;
     const me = s.currentPlayer;
     if (!canUseSkill(me)) return false;
@@ -180,12 +188,15 @@ export function createLocalMatch(
       applyMove,
     };
 
+    // 那刻夏「洞察」：免费提示，不消耗回合 / 不标记 skillUsed / 不限次数
+    if (skillId === 'nakkari') {
+      const r = char.active(ctx, 0, undefined, undefined);
+      activeHint.value = r.hintPit;
+      return true;
+    }
+
     const r = char.active(ctx, pit ?? 0, targetPit, dir);
-    // eslint-disable-next-line no-console
-    console.log('[useSkill]', skillId, 'me=', me, 'extraTurn=', r.extraTurn, 'continueAfterSkill=', r.continueAfterSkill);
     applyActionResult(r, me, skillId, s);
-    // eslint-disable-next-line no-console
-    console.log('[useSkill] after: currentPlayer=', state.value.currentPlayer, 'skillUsed=', state.value.skillUsed);
     return true;
   }
 
@@ -249,8 +260,6 @@ export function createLocalMatch(
       const init = dispatcher.onTurnStart(next, next.currentPlayer);
       state.value = init;
     }
-    // eslint-disable-next-line no-console
-    console.log('[applyActionResult] branch normal, extraTurn=', r.extraTurn, 'next.currentPlayer=', state.value.currentPlayer);
     displayBoard.value = toViewBoard(state.value);
   }
 
@@ -289,6 +298,7 @@ export function createLocalMatch(
     lastError.value = null;
     pendingTibao.value = false;
     tibaoSkillExtraTurn = false;
+    activeHint.value = undefined;
   }
 
   function destroy() {
@@ -314,6 +324,7 @@ export function createLocalMatch(
     skillUsed,
     activeEffects,
     pendingTibao,
+    activeHint,
     silenced,
     direction,
     setChars,

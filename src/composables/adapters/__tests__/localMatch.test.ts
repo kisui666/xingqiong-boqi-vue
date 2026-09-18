@@ -8,6 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { createLocalMatch } from '../localMatch';
+import { applyMove } from '../../../game/engine';
 import { INITIAL_BOARD } from '../../../game/constants';
 
 function makeAdapter() {
@@ -108,5 +109,86 @@ describe('3. 沉默 UI 判定：阿格莱雅被那刻夏封印', () => {
     a.setChars(['aglaiya', 'baie']);
     expect(a.silenced.value).toEqual([]);
     expect(a.canUseSkill(0)).toBe(true);
+  });
+});
+
+describe('4. 那刻夏「洞察」：不限次数的免费提示', () => {
+  it('发动后高亮推荐落点，不消耗回合 / 不标 skillUsed / 不改棋盘', () => {
+    const a = makeAdapter();
+    a.setChars(['nakkari', 'baie']);
+    const beforeBoard = a.state.value.board.slice();
+    const beforeStores = [...a.state.value.stores] as [number, number];
+
+    const ok = a.useSkill('nakkari');
+    expect(ok).toBe(true);
+    // 回合不变
+    expect(a.state.value.currentPlayer).toBe(0);
+    // skillUsed 全 false（不消耗次数）
+    expect(a.skillUsed.value).toEqual([false, false]);
+    // 棋盘/计分不变
+    expect(a.state.value.board).toEqual(beforeBoard);
+    expect(a.state.value.stores).toEqual(beforeStores);
+    // 高亮一个玩家0 的合法坑（board 下标 0~5）
+    expect(a.activeHint.value).toBeGreaterThanOrEqual(0);
+    expect(a.activeHint.value).toBeLessThanOrEqual(5);
+  });
+
+  it('可不限次数重复发动，skillUsed 始终 false', () => {
+    const a = makeAdapter();
+    a.setChars(['nakkari', 'baie']);
+    for (let i = 0; i < 3; i++) {
+      expect(a.useSkill('nakkari')).toBe(true);
+      expect(a.activeHint.value).toBeGreaterThanOrEqual(0);
+      expect(a.activeHint.value).toBeLessThanOrEqual(5);
+    }
+    expect(a.skillUsed.value).toEqual([false, false]);
+  });
+
+  it('canUseSkill 始终允许那刻夏洞察（不看 skillUsed）', () => {
+    const a = makeAdapter();
+    a.setChars(['nakkari', 'baie']);
+    expect(a.canUseSkill(0)).toBe(true);
+  });
+
+  it('推荐落点确实是期望净得分最高的坑', () => {
+    const a = makeAdapter();
+    a.setChars(['nakkari', 'baie']);
+    a.useSkill('nakkari');
+    const hint = a.activeHint.value;
+    expect(hint).not.toBeUndefined();
+
+    const s = a.state.value;
+    let maxGain = -Infinity;
+    for (let p = 0; p <= 5; p++) {
+      const r = applyMove(s, p, 0);
+      if (r.ok) maxGain = Math.max(maxGain, r.state.stores[0] - s.stores[0]);
+    }
+    const hintRes = applyMove(s, hint!, 0);
+    expect(hintRes.ok).toBe(true);
+    if (hintRes.ok) {
+      expect(hintRes.state.stores[0] - s.stores[0]).toBe(maxGain);
+    }
+  });
+
+  it('玩家实际落子后清除洞察高亮', () => {
+    const a = makeAdapter();
+    a.setChars(['nakkari', 'baie']);
+    a.useSkill('nakkari');
+    expect(a.activeHint.value).not.toBeUndefined();
+    // 玩家0 坑0（逻辑位 0，初始 4 颗，合法）
+    expect(a.canClick(0)).toBe(true);
+    a.handlePitClick(0);
+    // 高亮在落子时同步清除
+    expect(a.activeHint.value).toBeUndefined();
+    // 清理 pending gsap timeline
+    a.destroy();
+  });
+
+  it('reset 后清除洞察高亮', () => {
+    const a = makeAdapter();
+    a.setChars(['nakkari', 'baie']);
+    a.useSkill('nakkari');
+    a.reset();
+    expect(a.activeHint.value).toBeUndefined();
   });
 });

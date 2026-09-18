@@ -84,6 +84,9 @@ export function useMatch(options: UseMatchOptions) {
   const pendingTibao = computed(
     () => adapter.value?.pendingTibao.value ?? false,
   );
+  const activeHint = computed<number | undefined>(
+    () => adapter.value?.activeHint.value ?? undefined,
+  );
   const silenced = computed<PlayerId[]>(
     () => adapter.value?.silenced.value ?? [],
   );
@@ -182,6 +185,7 @@ export function useMatch(options: UseMatchOptions) {
     skillUsed,
     activeEffects,
     pendingTibao,
+    activeHint,
     silenced,
     direction,
     setChars,

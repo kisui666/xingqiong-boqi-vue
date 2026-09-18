@@ -54,6 +54,7 @@ export function createAiMatch(
   const skillUsed = computed<[boolean, boolean]>(() => state.value.skillUsed);
   const activeEffects = computed<Effect[]>(() => state.value.effects);
   const pendingTibao = computed(() => false);
+  const activeHint = computed<number | undefined>(() => undefined);
   const silenced = computed<PlayerId[]>(() => []);
   const direction = computed<'cw' | 'ccw' | undefined>(
     () => state.value.direction,
@@ -186,6 +187,7 @@ export function createAiMatch(
     skillUsed,
     activeEffects,
     pendingTibao,
+    activeHint,
     silenced,
     direction,
     setChars,

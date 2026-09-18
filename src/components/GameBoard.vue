@@ -8,6 +8,7 @@
 -->
 <script setup lang="ts">
 import { computed } from 'vue';
+import { boardPitToLogical } from '../game/constants';
 import type { PlayerId } from '../game/types';
 import PitCell from './PitCell.vue';
 
@@ -22,6 +23,8 @@ const props = defineProps<{
   bottomPlayer: PlayerId;
   /** 当前行动方 */
   activePlayer: PlayerId;
+  /** 那刻夏洞察高亮的推荐落点（board 下标；undefined = 无） */
+  hintBoardPit?: number;
 }>();
 
 const emit = defineEmits<{ (e: 'pit-click', pitIndex: number): void }>();
@@ -33,6 +36,13 @@ const bottomRowActive = computed(() => props.activePlayer === props.bottomPlayer
 const topRowActive = computed(() => !bottomRowActive.value);
 const myStoreActive = computed(() => bottomRowActive.value);
 const oppStoreActive = computed(() => topRowActive.value);
+
+/** 洞察推荐落点的逻辑位（无则 -1） */
+const hintLogical = computed(() =>
+  props.hintBoardPit !== undefined && props.hintBoardPit >= 0
+    ? boardPitToLogical(props.hintBoardPit)
+    : -1,
+);
 </script>
 
 <template>
@@ -62,6 +72,7 @@ const oppStoreActive = computed(() => topRowActive.value);
             :owner="topRowOwner"
             :active="topRowActive"
             :clickable="canClick(p)"
+            :hint="p === hintLogical"
             @click="emit('pit-click', p)"
           />
         </div>
@@ -77,6 +88,7 @@ const oppStoreActive = computed(() => topRowActive.value);
             :owner="bottomPlayer"
             :active="bottomRowActive"
             :clickable="canClick(p)"
+            :hint="p === hintLogical"
             @click="emit('pit-click', p)"
           />
         </div>
