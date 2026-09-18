@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+# main 分支推送时自动部署；也支持 Actions 页面手动触发
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# GITHUB_TOKEN 所需最小权限：
+# pages/id-token = 部署 Pages 必需；contents:read = 检出代码
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时刻只跑一次部署，避免并发覆盖；不取消进行中的任务
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm # 依据 package-lock.json 缓存依赖
+
+      - run: npm ci
+
+      # --base 必须带上仓库名：Pages 项目站点挂在 /<仓库名>/ 子路径下，
+      # 否则构建产物里的资源路径会指向根路径导致 404 白屏。
+      # 透传给 npm 脚本末尾的 vite build（package.json: vue-tsc && vite build）。
+      - name: Build
+        run: npm run build -- --base=/${{ github.event.repository.name }}/
+
+      - uses: actions/configure-pages@v5
+
+      # dist 打包为 Pages 可部署产物
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
