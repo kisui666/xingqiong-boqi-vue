@@ -55,8 +55,9 @@ const emit = defineEmits<{
           <div class="rounded bg-gray-800/40 p-2 text-gray-400">
             <div class="mb-1 font-semibold">注意事项</div>
             <ul class="list-inside list-disc space-y-0.5">
-              <li>主动技能每局限 1 次，免费，发动后代替本回合落子（缇宝除外）。</li>
+              <li>主动技能免费发动；多数每局限 1 次并代替本回合落子，具体以角色说明为准。</li>
               <li>缇宝传送后仍需落子，不消耗本回合行动。</li>
+              <li>那刻夏·洞察为不限次数的免费提示，不消耗回合。</li>
               <li>那刻夏沉默阿格莱雅：对手为阿格莱雅时其被动+主动均失效。</li>
               <li>昔涟悔棋：恢复到上一回合开始状态，限 1 次。</li>
             </ul>

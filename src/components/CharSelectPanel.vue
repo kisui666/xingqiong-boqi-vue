@@ -136,7 +136,7 @@ function restart() {
     <!-- 顶部规则摘要（常驻） -->
     <div class="rounded-lg border border-stellar-gold/30 bg-stellar-gold/5 p-2 text-[11px] text-gray-300">
       <span class="font-semibold text-stellar-gold">规则：</span>
-      主动技能每局限 1 次 · 免费 · 发动后代替本回合落子（缇宝除外）
+      主动技能免费发动 · 多数每局限 1 次并代替本回合落子，详见各角色说明
     </div>
 
     <!-- 阶段提示 -->
